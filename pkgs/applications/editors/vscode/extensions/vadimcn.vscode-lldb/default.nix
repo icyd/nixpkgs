@@ -1,6 +1,6 @@
-{ pkgs, lib, stdenv, fetchFromGitHub, runCommand, rustPlatform, makeWrapper, llvmPackages
-, buildNpmPackage, cmake, nodejs, unzip, python3, pkg-config, libsecret, darwin
-}:
+{ pkgs, lib, stdenv, fetchFromGitHub, runCommand, rustPlatform, makeWrapper
+, llvmPackages, buildNpmPackage, cmake, nodejs, unzip, python3, pkg-config
+, libsecret, darwin }:
 assert lib.versionAtLeast python3.version "3.5";
 let
   publisher = "vadimcn";
@@ -19,7 +19,8 @@ let
   };
 
   # need to build a custom version of lldb and llvm for enhanced rust support
-  lldb = (import ./lldb.nix { inherit fetchFromGitHub runCommand llvmPackages; });
+  lldb =
+    (import ./lldb.nix { inherit fetchFromGitHub runCommand llvmPackages; });
 
   adapter = rustPlatform.buildRustPackage {
     pname = "${pname}-adapter";
@@ -33,10 +34,7 @@ let
 
     buildFeatures = [ "weak-linkage" ];
 
-    cargoBuildFlags = [
-      "--lib"
-      "--bin=codelldb"
-    ];
+    cargoBuildFlags = [ "--lib" "--bin=codelldb" ];
 
     patches = [ ./adapter-output-shared_object.patch ];
 
@@ -50,17 +48,10 @@ let
 
     npmDepsHash = "sha256-fMKGi+AJTMlWl7SQtZ21hUwOLgqlFYDhwLvEergQLfI=";
 
-    nativeBuildInputs = [
-      python3
-      pkg-config
-    ];
+    nativeBuildInputs = [ python3 pkg-config ];
 
-    buildInputs = [
-      libsecret
-    ] ++ lib.optionals stdenv.isDarwin (with darwin.apple_sdk.frameworks; [
-      Security
-      AppKit
-    ]);
+    buildInputs = [ libsecret ] ++ lib.optionals stdenv.isDarwin
+      (with darwin.apple_sdk.frameworks; [ Security AppKit ]);
 
     dontNpmBuild = true;
 
@@ -77,10 +68,7 @@ let
   # debugservers on macOS require the 'com.apple.security.cs.debugger'
   # entitlement which nixpkgs' lldb-server does not yet provide; see
   # <https://github.com/NixOS/nixpkgs/pull/38624> for details
-  lldbServer = if stdenv.isDarwin then
-    "/Applications/Xcode.app/Contents/SharedFrameworks/LLDB.framework/Versions/A/Resources/debugserver"
-  else
-    "${lldb.out}/bin/lldb-server";
+  lldbServer = "/Library/Developer/CommandLineTools/Library/PrivateFrameworks/LLDB.framework/Versions/A/Resources/debugserver"
 
 in stdenv.mkDerivation {
   pname = "vscode-extension-${publisher}-${pname}";
